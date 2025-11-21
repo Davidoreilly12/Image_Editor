@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Image Mask Editor</title>
+<style>
+  body { display: flex; flex-direction: column; align-items: center; font-family: sans-serif; }
+  canvas { border: 1px solid #ccc; cursor: crosshair; }
+  #controls { margin-top: 10px; }
+</style>
+</head>
+<body>
+
+<h2>Upload Image & Draw Mask</h2>
+<input type="file" id="imageUpload" accept="image/*">
+<canvas id="canvas"></canvas>
+
+<div id="controls">
+  <button id="saveMask">Save Mask</button>
+  <button id="clearMask">Clear Mask</button>
+</div>
+
+<script>
+const canvas = document.getElementById('canvas');
+const ctx = canvas.getContext('2d');
+let drawing = false;
+let image = new Image();
+
+// Handle image upload
+document.getElementById('imageUpload').addEventListener('change', (e) => {
+  const file = e.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = (event) => {
+    image.src = event.target.result;
+  };
+  reader.readAsDataURL(file);
+});
+
+// Draw the image when loaded and resize canvas to fit
+image.onload = () => {
+  canvas.width = image.width;
+  canvas.height = image.height;
+  ctx.drawImage(image, 0, 0);
+  ctx.globalCompositeOperation = 'source-over';
+};
+
+// Drawing mask overlay
+canvas.addEventListener('mousedown', () => drawing = true);
+canvas.addEventListener('mouseup', () => drawing = false);
+canvas.addEventListener('mouseleave', () => drawing = false);
+canvas.addEventListener('mousemove', draw);
+
+function draw(e) {
+  if (!drawing) return;
+  const rect = canvas.getBoundingClientRect();
+  const x = e.clientX - rect.left;
+  const y = e.clientY - rect.top;
+
+  ctx.fillStyle = 'rgba(255, 0, 0, 0.4)'; // mask color
+  ctx.beginPath();
+  ctx.arc(x, y, 10, 0, Math.PI * 2);
+  ctx.fill();
+}
+
+// Clear mask but keep image
+document.getElementById('clearMask').addEventListener('click', () => {
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  ctx.drawImage(image, 0, 0);
+});
+
+// Save mask as PNG
+document.getElementById('saveMask').addEventListener('click', () => {
+  const maskData = canvas.toDataURL('image/png');
+  const link = document.createElement('a');
+  link.href = maskData;
+  link.download = 'mask.png';
+  link.click();
+});
+</script>
+
+</body>
+</html>
