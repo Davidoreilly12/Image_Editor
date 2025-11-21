@@ -3,24 +3,33 @@ from streamlit_drawable_canvas import st_canvas
 from PIL import Image
 import numpy as np
 import cv2
+import base64
+from io import BytesIO
 
 st.set_page_config(layout="wide")
-st.title("🎨 Accurate Image Mask Drawer")
+
+def pil_to_base64(img: Image.Image):
+    buf = BytesIO()
+    img.save(buf, format="PNG")
+    img_bytes = buf.getvalue()
+    return "data:image/png;base64," + base64.b64encode(img_bytes).decode()
+
+st.title("🎨 Accurate Mask Drawer")
 
 uploaded_file = st.file_uploader("Upload Image", type=["png", "jpg", "jpeg"])
 
 if uploaded_file:
-    # Load image
     img = Image.open(uploaded_file).convert("RGB")
     img_np = np.array(img)
+    h, w = img_np.shape[:2]
 
-    h, w, _ = img_np.shape
+    # Convert to base64 so fabric.js can load it
+    img_b64 = pil_to_base64(img)
 
-    st.write("👉 Draw directly *on top* of the image below.")
+    st.write("👉 Draw directly on the image below:")
 
-    # Embed the actual image into the canvas
     canvas_result = st_canvas(
-        background_image=img,              # <- THE IMPORTANT FIX
+        background_image=img_b64,     # <- BASE64 FIX
         width=w,
         height=h,
         drawing_mode="freedraw",
@@ -31,28 +40,25 @@ if uploaded_file:
     )
 
     if canvas_result.image_data is not None:
-        # Extract drawing layer only
         drawn = canvas_result.image_data[:, :, :3].astype(np.uint8)
 
-        # Detect strokes: anything not white
         gray = cv2.cvtColor(drawn, cv2.COLOR_RGB2GRAY)
         mask = (gray < 250).astype(np.uint8) * 255
 
         mask_img = Image.fromarray(mask)
 
-        col1, col2 = st.columns(2)
-        with col1:
+        c1, c2 = st.columns(2)
+        with c1:
             st.subheader("Original")
             st.image(img)
-
-        with col2:
-            st.subheader("Generated Mask")
+        with c2:
+            st.subheader("Mask")
             st.image(mask_img)
 
         st.download_button(
             "Download Mask",
             data=mask_img.tobytes(),
             file_name="mask.png",
-            mime="image/png",
+            mime="image/png"
         )
 
