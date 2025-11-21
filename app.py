@@ -29,5 +29,8 @@ if uploaded_file:
         sketchpad.change(fn=process_mask, inputs=sketchpad, outputs=output_img)
 
     # Embed Gradio via HTML iframe
-    gradio_url = demo.launch(prevent_thread_lock=True, share=True)
+    launch_result = demo.launch(prevent_thread_lock=True, share=True)
+    gradio_url = launch_result[0]  # <-- This is the actual URL string
+    st.components.v1.iframe(gradio_url, height=image.height + 100, scrolling=True)
+
     st.components.v1.iframe(gradio_url, height=image.height + 100, scrolling=True)
