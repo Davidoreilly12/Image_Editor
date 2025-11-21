@@ -5,12 +5,27 @@
 <title>Mask Editor</title>
 <style>
   body { text-align: center; font-family: Arial; }
-  canvas { border:1px solid black; }
+  .container {
+    position: relative;
+    display: inline-block;
+  }
+  #bgImage {
+    display: block;
+  }
+  #canvas {
+    position: absolute;
+    top: 0;
+    left: 0;
+    cursor: crosshair;
+  }
 </style>
 </head>
 <body>
 <h2>Mask Editor</h2>
-<canvas id="canvas"></canvas>
+<div class="container">
+  <img id="bgImage" src="" />
+  <canvas id="canvas"></canvas>
+</div>
 <br>
 <button onclick="saveMask()">Generate Mask</button>
 <a id="downloadLink" style="display:none;">Download Mask</a>
@@ -33,18 +48,19 @@ canvas.addEventListener('mousemove', e => {
 canvas.addEventListener('mouseup', e => { drawing = false; });
 canvas.addEventListener('mouseleave', e => { drawing = false; });
 
-// Function to load image from Streamlit
+// Load image and fit canvas on top
 function loadImage(base64Str, width, height) {
-    const img = new Image();
+    const img = document.getElementById('bgImage');
     img.src = 'data:image/png;base64,' + base64Str;
-    img.onload = () => {
-        canvas.width = width;
-        canvas.height = height;
-        ctx.drawImage(img, 0, 0, width, height);
-    };
+    img.style.opacity = 0.5;  // semi-transparent for tracing
+    img.width = width;
+    img.height = height;
+
+    canvas.width = width;
+    canvas.height = height;
 }
 
-// Generate mask: white inside drawing, black elsewhere
+// Generate mask from drawing only
 function saveMask() {
     const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
     const data = imageData.data;
@@ -65,5 +81,4 @@ function saveMask() {
 </script>
 </body>
 </html>
-
 
