@@ -4,8 +4,8 @@
 <meta charset="UTF-8">
 <title>Mask Editor</title>
 <style>
-  body {{ text-align: center; font-family: Arial; }}
-  canvas {{ border:1px solid black; }}
+  body { text-align: center; font-family: Arial; }
+  canvas { border:1px solid black; }
 </style>
 </head>
 <body>
@@ -20,49 +20,50 @@ const canvas = document.getElementById('canvas');
 const ctx = canvas.getContext('2d');
 let drawing = false;
 
-// Load background image from Streamlit
-let img = new Image();
-window.onloadImage = function(base64Str, width, height) {{
-    img.src = 'data:image/png;base64,' + base64Str;
-    img.onload = () => {{
-        canvas.width = width;
-        canvas.height = height;
-        ctx.drawImage(img, 0, 0, width, height);
-    }};
-}}
-
-// Drawing
-canvas.addEventListener('mousedown', e => {{ drawing = true; ctx.beginPath(); ctx.moveTo(e.offsetX, e.offsetY); }});
-canvas.addEventListener('mousemove', e => {{
-    if(drawing) {{
+// Drawing logic
+canvas.addEventListener('mousedown', e => { drawing = true; ctx.beginPath(); ctx.moveTo(e.offsetX, e.offsetY); });
+canvas.addEventListener('mousemove', e => {
+    if(drawing) {
         ctx.lineTo(e.offsetX, e.offsetY);
         ctx.strokeStyle = 'white';
         ctx.lineWidth = 3;
         ctx.stroke();
-    }}
-}});
-canvas.addEventListener('mouseup', e => {{ drawing = false; }});
-canvas.addEventListener('mouseleave', e => {{ drawing = false; }});
+    }
+});
+canvas.addEventListener('mouseup', e => { drawing = false; });
+canvas.addEventListener('mouseleave', e => { drawing = false; });
 
-// Generate mask: white inside drawing, black outside
-function saveMask() {{
+// Function to load image from Streamlit
+function loadImage(base64Str, width, height) {
+    const img = new Image();
+    img.src = 'data:image/png;base64,' + base64Str;
+    img.onload = () => {
+        canvas.width = width;
+        canvas.height = height;
+        ctx.drawImage(img, 0, 0, width, height);
+    };
+}
+
+// Generate mask: white inside drawing, black elsewhere
+function saveMask() {
     const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
     const data = imageData.data;
-    for(let i=0; i<data.length; i+=4){{
-        if(data[i] > 0 || data[i+1] > 0 || data[i+2] > 0){{
+    for(let i=0; i<data.length; i+=4){
+        if(data[i] > 0 || data[i+1] > 0 || data[i+2] > 0){
             data[i]=255; data[i+1]=255; data[i+2]=255; data[i+3]=255;
-        }} else {{
+        } else {
             data[i]=0; data[i+1]=0; data[i+2]=0; data[i+3]=255;
-        }}
-    }}
+        }
+    }
     ctx.putImageData(imageData, 0, 0);
     const link = document.getElementById('downloadLink');
     link.href = canvas.toDataURL('image/png');
     link.download = 'mask.png';
     link.style.display = 'inline';
     link.innerText = 'Download Mask';
-}}
+}
 </script>
 </body>
 </html>
+
 
