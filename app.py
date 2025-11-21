@@ -2,47 +2,35 @@ import streamlit as st
 from streamlit_drawable_canvas import st_canvas
 from PIL import Image
 import io
-import base64
 
-st.title("Image Mask Editor")
+st.title("Image Mask Editor with Zoom")
 
-# 1️⃣ Upload the base image
-uploaded_file = st.file_uploader("Upload an image to annotate", type=["png", "jpg", "jpeg"])
+uploaded_file = st.file_uploader("Upload an image", type=["png", "jpg", "jpeg"])
 if uploaded_file:
     image = Image.open(uploaded_file)
-    st.image(image, caption="Original Image", use_column_width=True)
-
-    # 2️⃣ Create a drawing canvas overlay
+    
+    # Resize for canvas display
+    max_dim = 800  # max canvas width or height
+    ratio = min(max_dim / image.width, max_dim / image.height, 1)
+    display_size = (int(image.width*ratio), int(image.height*ratio))
+    display_image = image.resize(display_size)
+    
     canvas_result = st_canvas(
-        fill_color="rgba(255, 0, 0, 0.3)",  # semi-transparent red mask
-        stroke_width=20,
-        stroke_color="rgba(255, 0, 0, 0.8)",
-        background_image=image,
+        fill_color="rgba(255,0,0,0.3)",
+        stroke_width=15,
+        stroke_color="rgba(255,0,0,0.8)",
+        background_image=display_image,
         update_streamlit=True,
-        height=image.height,
-        width=image.width,
+        height=display_image.height,
+        width=display_image.width,
         drawing_mode="freedraw",
-        key="canvas",
+        key="canvas_zoom",
     )
 
-    # 3️⃣ When the user draws, export the mask automatically
     if canvas_result.image_data is not None:
-        # Convert numpy array to PIL image
-        mask = Image.fromarray(canvas_result.image_data.astype('uint8'), 'RGBA')
+        # Convert to original image size mask
+        mask_small = Image.fromarray(canvas_result.image_data.astype('uint8'), 'RGBA')
+        mask = mask_small.resize(image.size)
+        st.image(mask, caption="Mask (original size)", use_column_width=True)
 
-        # Display mask
-        st.image(mask, caption="Generated Mask", use_column_width=True)
-
-        # Convert mask to downloadable bytes
-        buf = io.BytesIO()
-        mask.save(buf, format="PNG")
-        byte_im = buf.getvalue()
-
-        # Download button
-        st.download_button(
-            label="Download Mask",
-            data=byte_im,
-            file_name="mask.png",
-            mime="image/png"
-        )
 
