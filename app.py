@@ -2,35 +2,35 @@ import streamlit as st
 from streamlit_drawable_canvas import st_canvas
 from PIL import Image
 import io
+import numpy as np
 
-st.title("Image Mask Editor with Zoom")
+st.title("Full-Size Image Mask Editor")
 
 uploaded_file = st.file_uploader("Upload an image", type=["png", "jpg", "jpeg"])
 if uploaded_file:
+    # Load the image
     image = Image.open(uploaded_file)
     
-    # Resize for canvas display
-    max_dim = 800  # max canvas width or height
-    ratio = min(max_dim / image.width, max_dim / image.height, 1)
-    display_size = (int(image.width*ratio), int(image.height*ratio))
-    display_image = image.resize(display_size)
-    
+    # Use the image dimensions for canvas
     canvas_result = st_canvas(
-        fill_color="rgba(255,0,0,0.3)",
+        fill_color="rgba(255,0,0,0.3)",  # semi-transparent fill
         stroke_width=15,
         stroke_color="rgba(255,0,0,0.8)",
-        background_image=display_image,
+        background_image=image,
         update_streamlit=True,
-        height=display_image.height,
-        width=display_image.width,
+        height=image.height,
+        width=image.width,
         drawing_mode="freedraw",
-        key="canvas_zoom",
+        key="canvas_fullsize",
     )
 
     if canvas_result.image_data is not None:
-        # Convert to original image size mask
-        mask_small = Image.fromarray(canvas_result.image_data.astype('uint8'), 'RGBA')
-        mask = mask_small.resize(image.size)
-        st.image(mask, caption="Mask (original size)", use_column_width=True)
+        # Convert drawn canvas to mask
+        mask = Image.fromarray(canvas_result.image_data.astype("uint8"), "RGBA")
+        st.image(mask, caption="Mask Overlay", use_column_width=True)
+
+        # Optional: save automatically
+        mask.save("mask.png")
+        st.success("Mask saved as mask.png")
 
 
