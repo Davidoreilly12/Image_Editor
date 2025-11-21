@@ -1,67 +1,48 @@
 import streamlit as st
-import streamlit.components.v1 as components
+from streamlit_drawable_canvas import st_canvas
 from PIL import Image
 import io
 import base64
 
-st.title("Draw Mask on Uploaded Image")
+st.title("Image Mask Editor")
 
-# Upload an image
-uploaded_file = st.file_uploader("Upload an image", type=["png", "jpg", "jpeg"])
-
+# 1️⃣ Upload the base image
+uploaded_file = st.file_uploader("Upload an image to annotate", type=["png", "jpg", "jpeg"])
 if uploaded_file:
-    # Load image
     image = Image.open(uploaded_file)
-    image = image.convert("RGB")
-    width, height = image.size
+    st.image(image, caption="Original Image", use_column_width=True)
 
-    # Convert image to base64
-    buffered = io.BytesIO()
-    image.save(buffered, format="PNG")
-    img_str = base64.b64encode(buffered.getvalue()).decode()
+    # 2️⃣ Create a drawing canvas overlay
+    canvas_result = st_canvas(
+        fill_color="rgba(255, 0, 0, 0.3)",  # semi-transparent red mask
+        stroke_width=20,
+        stroke_color="rgba(255, 0, 0, 0.8)",
+        background_image=image,
+        update_streamlit=True,
+        height=image.height,
+        width=image.width,
+        drawing_mode="freedraw",
+        key="canvas",
+    )
 
-    # HTML + JS for canvas drawing on top of image
-    canvas_html = f"""
-    <div>
-        <canvas id="sketch" width="{width}" height="{height}" 
-                style="border:1px solid black; background-image: url(data:image/png;base64,{img_str}); 
-                       background-size: contain; background-repeat: no-repeat;"></canvas>
-        <br>
-        <button onclick="saveCanvas()">Save Mask</button>
-    </div>
-    <script>
-    const canvas = document.getElementById('sketch');
-    const ctx = canvas.getContext('2d');
-    let drawing = false;
+    # 3️⃣ When the user draws, export the mask automatically
+    if canvas_result.image_data is not None:
+        # Convert numpy array to PIL image
+        mask = Image.fromarray(canvas_result.image_data.astype('uint8'), 'RGBA')
 
-    canvas.addEventListener('mousedown', () => {{ drawing = true; }});
-    canvas.addEventListener('mouseup', () => {{ drawing = false; ctx.beginPath(); }});
-    canvas.addEventListener('mousemove', draw);
+        # Display mask
+        st.image(mask, caption="Generated Mask", use_column_width=True)
 
-    function draw(e) {{
-        if(!drawing) return;
-        ctx.lineWidth = 10;
-        ctx.lineCap = 'round';
-        ctx.strokeStyle = 'black';
-        ctx.lineTo(e.offsetX, e.offsetY);
-        ctx.stroke();
-        ctx.beginPath();
-        ctx.moveTo(e.offsetX, e.offsetY);
-    }}
+        # Convert mask to downloadable bytes
+        buf = io.BytesIO()
+        mask.save(buf, format="PNG")
+        byte_im = buf.getvalue()
 
-    function saveCanvas() {{
-        const dataURL = canvas.toDataURL('image/png');
-        const pyInput = document.createElement('input');
-        pyInput.type = 'text';
-        pyInput.value = dataURL;
-        pyInput.id = 'canvas_data';
-        document.body.appendChild(pyInput);
-    }}
-    </script>
-    """
-
-    # Embed the canvas
-    components.html(canvas_html, height=height + 100)
-
-    st.info("After drawing, click 'Save Mask' on the canvas. Copy the base64 string from the browser console if needed.")
+        # Download button
+        st.download_button(
+            label="Download Mask",
+            data=byte_im,
+            file_name="mask.png",
+            mime="image/png"
+        )
 
