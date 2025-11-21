@@ -6,21 +6,35 @@ import cv2
 
 st.set_page_config(layout="wide")
 
+MAX_CANVAS_WIDTH = 900   # keep canvas safe for Streamlit Cloud
+
+
 st.title("🖌️ Draw Mask on Image")
 
 uploaded_file = st.file_uploader("Upload an image", type=["png", "jpg", "jpeg"])
 
 if uploaded_file:
-    # Load image correctly
-    img = Image.open(uploaded_file).convert("RGBA")
-    w, h = img.size
+    # Load original image
+    original = Image.open(uploaded_file).convert("RGBA")
+    orig_w, orig_h = original.size
 
-    st.write("Draw on top of the image:")
+    # Compute scaled size for canvas
+    if orig_w > MAX_CANVAS_WIDTH:
+        scale = MAX_CANVAS_WIDTH / orig_w
+        canvas_w = MAX_CANVAS_WIDTH
+        canvas_h = int(orig_h * scale)
+    else:
+        canvas_w, canvas_h = orig_w, orig_h
+
+    # Create scaled image for canvas
+    canvas_img = original.resize((canvas_w, canvas_h))
+
+    st.write("Draw directly on the image:")
 
     canvas_result = st_canvas(
-        background_image=img,   # MUST be RGBA
-        height=h,
-        width=w,
+        background_image=canvas_img,
+        height=canvas_h,
+        width=canvas_w,
         drawing_mode="freedraw",
         stroke_color="red",
         stroke_width=20,
@@ -29,22 +43,26 @@ if uploaded_file:
     )
 
     if canvas_result.image_data is not None:
-        # Extract drawing layer
-        drawing = canvas_result.image_data[:, :, :3]  # RGB only
+        # Drawing is same size as canvas
+        drawing = canvas_result.image_data[:, :, :3]
 
-        # Convert to 1-channel mask
+        # Convert drawing to a binary mask
         gray = cv2.cvtColor(drawing, cv2.COLOR_RGB2GRAY)
-        mask = (gray < 200).astype(np.uint8) * 255
+        mask_small = (gray < 200).astype(np.uint8) * 255
 
-        mask_img = Image.fromarray(mask)
+        # Resize mask back to original resolution so your pipeline works
+        mask = cv2.resize(mask_small, (orig_w, orig_h), interpolation=cv2.INTER_NEAREST)
 
+        # Display outputs
         col1, col2 = st.columns(2)
+
         with col1:
-            st.subheader("Original")
-            st.image(img)
+            st.subheader("Original Image")
+            st.image(original)
 
         with col2:
-            st.subheader("Generated Mask")
-            st.image(mask_img)
+            st.subheader("Generated Mask (Original Size)")
+            st.image(mask)
+
 
 
