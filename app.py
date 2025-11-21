@@ -4,33 +4,42 @@ from PIL import Image
 import io
 import numpy as np
 
-st.title("Full-Size Image Mask Editor")
+st.title("Cloakdocs‑Style Mask Editor")
 
-uploaded_file = st.file_uploader("Upload an image", type=["png", "jpg", "jpeg"])
-if uploaded_file:
-    # Load the image
-    image = Image.open(uploaded_file)
-    
-    # Use the image dimensions for canvas
+uploaded = st.file_uploader("Upload an image", type=["png", "jpg", "jpeg"])
+if uploaded is not None:
+    img = Image.open(uploaded).convert("RGBA")
+    w, h = img.size
+
+    st.write("Draw over the image to create a mask:")
+
+    # Use a canvas with the image as background
     canvas_result = st_canvas(
-        fill_color="rgba(255,0,0,0.3)",  # semi-transparent fill
-        stroke_width=15,
-        stroke_color="rgba(255,0,0,0.8)",
-        background_image=image,
+        fill_color="rgba(255, 0, 0, 0.3)",
+        stroke_width=20,
+        stroke_color="red",
+        background_image=img,
         update_streamlit=True,
-        height=image.height,
-        width=image.width,
+        height=h,
+        width=w,
         drawing_mode="freedraw",
-        key="canvas_fullsize",
+        key="cloakdocs_canvas"
     )
 
     if canvas_result.image_data is not None:
-        # Convert drawn canvas to mask
-        mask = Image.fromarray(canvas_result.image_data.astype("uint8"), "RGBA")
-        st.image(mask, caption="Mask Overlay", use_column_width=True)
+        # Convert RGBA drawing data to mask
+        mask_data = canvas_result.image_data[:, :, 3]  # alpha channel
+        mask = (mask_data > 0).astype(np.uint8) * 255  # binary mask
 
-        # Optional: save automatically
-        mask.save("mask.png")
-        st.success("Mask saved as mask.png")
+        # Convert to PIL to allow download
+        mask_pil = Image.fromarray(mask)
+
+        st.subheader("Mask Preview")
+        st.image(mask_pil, use_column_width=True)
+
+        # Download button
+        buf = io.BytesIO()
+        mask_pil.save(buf, format="PNG")
+        st.download_button("Download Mask", buf.getvalue(), "mask.png", "image/png")
 
 
