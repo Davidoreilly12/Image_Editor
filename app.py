@@ -3,44 +3,40 @@ from streamlit_drawable_canvas import st_canvas
 from PIL import Image
 import numpy as np
 import cv2
-import base64
 from io import BytesIO
 
 st.set_page_config(layout="wide")
 
-def pil_to_base64(img: Image.Image):
-    buf = BytesIO()
-    img.save(buf, format="PNG")
-    img_bytes = buf.getvalue()
-    return "data:image/png;base64," + base64.b64encode(img_bytes).decode()
-
-st.title("🎨 Accurate Mask Drawer")
+st.title("🎨 Mask Drawer")
 
 uploaded_file = st.file_uploader("Upload Image", type=["png", "jpg", "jpeg"])
 
 if uploaded_file:
     img = Image.open(uploaded_file).convert("RGB")
-    img_np = np.array(img)
-    h, w = img_np.shape[:2]
 
-    # Convert to base64 so fabric.js can load it
-    img_b64 = pil_to_base64(img)
+    # Get dimensions
+    w, h = img.size
+
+    # THE FIX: Always resize background manually — prevents Streamlit Cloud crash
+    bg = img.resize((w, h))
 
     st.write("👉 Draw directly on the image below:")
 
     canvas_result = st_canvas(
-        background_image=img_b64,     # <- BASE64 FIX
+        background_image=bg,        # MUST be PIL, not base64
         width=w,
         height=h,
         drawing_mode="freedraw",
-        stroke_width=30,
+        stroke_width=25,
         stroke_color="red",
         update_streamlit=True,
-        key="canvas",
+        key="canvas_editor"
     )
 
     if canvas_result.image_data is not None:
-        drawn = canvas_result.image_data[:, :, :3].astype(np.uint8)
+
+        # Extract only the drawing layer
+        drawn = canvas_result.image_data[:, :, :3]
 
         gray = cv2.cvtColor(drawn, cv2.COLOR_RGB2GRAY)
         mask = (gray < 250).astype(np.uint8) * 255
@@ -55,10 +51,14 @@ if uploaded_file:
             st.subheader("Mask")
             st.image(mask_img)
 
+        # Save mask
+        buf = BytesIO()
+        mask_img.save(buf, format="PNG")
         st.download_button(
             "Download Mask",
-            data=mask_img.tobytes(),
-            file_name="mask.png",
-            mime="image/png"
+            buf.getvalue(),
+            "mask.png",
+            "image/png"
         )
+
 
