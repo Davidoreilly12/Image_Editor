@@ -2,35 +2,53 @@ import streamlit as st
 import gradio as gr
 import numpy as np
 from PIL import Image
+import io
 
-st.title("Image Mask Drawer")
+st.set_page_config(page_title="Image Mask Editor", layout="wide")
+
+st.title("Draw Custom Masks on Images")
 
 # Upload an image
 uploaded_file = st.file_uploader("Upload an image", type=["png", "jpg", "jpeg"])
-if uploaded_file:
+if uploaded_file is not None:
     image = Image.open(uploaded_file).convert("RGB")
     st.image(image, caption="Original Image", use_column_width=True)
 
-    # Define a function that returns the mask drawn by the user
-    def get_mask(mask):
+    # Function that receives the sketch and returns it as a mask
+    def process_mask(sketch_img):
         """
-        mask: a numpy array returned from gr.Sketchpad
+        sketch_img is a numpy array of the sketchpad output.
+        Returns an RGBA mask image (white drawing on transparent background)
         """
-        if mask is None:
-            return np.zeros((image.height, image.width), dtype=np.uint8)
-        # Convert mask to binary
-        return (mask[:, :, 0] > 0).astype(np.uint8) * 255
+        if sketch_img is None:
+            return None
+        mask = np.array(sketch_img)
+        # Convert white strokes on transparent background
+        # If sketch has alpha channel, keep it
+        if mask.shape[2] == 4:
+            return Image.fromarray(mask)
+        else:
+            # Add alpha channel
+            alpha = (mask.sum(axis=2) > 0).astype(np.uint8) * 255
+            mask_rgba = np.dstack([mask, alpha])
+            return Image.fromarray(mask_rgba)
 
-    # Launch Gradio Sketchpad inside Streamlit
-    mask = gr.Sketchpad(
-        image=image,  # initial image as background
-        shape=(image.height, image.width),
-        brush_radius=5,
-        invert_colors=False,
-    ).launch(inline=True)  # inline embeds in Streamlit
+    # Create Gradio sketchpad interface
+    iface = gr.Interface(
+        fn=process_mask,
+        inputs=gr.Sketchpad(
+            label="Draw mask here",
+            shape=image.size[::-1],  # Gradio expects (height, width)
+            brush_radius=10
+        ),
+        outputs=gr.Image(type="pil", label="Mask Output"),
+        live=True
+    )
 
-    # Show mask if available
-    if mask is not None:
-        st.subheader("Mask Output")
-        st.image(mask, channels="L", use_column_width=True)
+    # Embed Gradio in Streamlit
+    gradio_html = iface.embed()
+    st.components.v1.html(gradio_html, height=650, scrolling=True)
+
+    st.info("Draw on the canvas to create your mask. The mask will appear below the canvas.")
+
 
