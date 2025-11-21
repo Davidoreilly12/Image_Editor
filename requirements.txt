@@ -1,30 +1,29 @@
-# Streamlit
-streamlit==1.29.0
+# Streamlit core
+streamlit>=1.29.0,<2
 
-# Streamlit Canvas for drawing masks
-streamlit-drawable-canvas==0.9.1
+# JS/HTML frontend integration
+streamlit-components>=1.2.0
 
 # Image processing
-Pillow==9.5.0
-numpy<2,>=1.19.3
-scipy>=1.11.1
+Pillow>=9.5.0,<10
+numpy>=1.22.0,<2
 
-# Deep learning / diffusion models
-torch==2.2.2
-torchvision==0.17.2
-diffusers==0.27.2
-transformers>=4.36.0
-accelerate>=0.23.0
-timm>=0.9.0
-
-# Optional UI / logging
-rich==14.2.0
-markdown-it-py==4.0.0
-mdurl==0.1.2
-pygments==2.19.2
+# Optional ML / AI
+torch>=2.0.1,<2.3
+torchvision>=0.17.0,<0.18
+diffusers>=0.27.0,<0.28
+transformers>=4.36.0,<5.0
+accelerate>=0.23.0,<2.0
+timm>=0.9.0,<2.0
+scipy>=1.11.0,<2.0
 
 # Utilities
-validators==0.35.0
-watchdog==6.0.0
-zipp==3.23.0
+rich>=14.2.0
+markdown-it-py>=4.0.0
+mdurl>=0.1.2
+pygments>=2.19.2
+validators>=0.20.0
+watchdog>=2.3.1
+zipp>=3.23.0
+
 
