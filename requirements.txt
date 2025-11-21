@@ -6,8 +6,9 @@ gradio==3.45.1
 
 # Image processing
 Pillow==9.5.0
-numpy==2.2.2
-opencv-python-headless==4.12.0.88
+numpy==1.24.3
+opencv-python-headless==4.10.0.84
+
 
 # Optional ML / Diffusers pipeline dependencies if you plan to integrate later
 torch==2.2.2
