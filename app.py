@@ -1,36 +1,45 @@
 import streamlit as st
 import gradio as gr
-from PIL import Image
+from PIL import Image, ImageOps
 import numpy as np
 
-st.title("Draw Custom Masks on Images")
+st.set_page_config(page_title="Sketch Mask Editor", layout="wide")
 
-uploaded_file = st.file_uploader("Upload an image", type=["png", "jpg", "jpeg"])
+st.title("Sketch Mask Editor")
 
-if uploaded_file:
-    image = Image.open(uploaded_file).convert("RGB")
-    st.image(image, caption="Original Image", use_column_width=True)
+# Instructions
+st.markdown("""
+Draw a mask on the canvas below. The output will show your mask as an image.
+""")
 
-    # Function to convert sketchpad output to mask
-    def process_mask(sketch_img):
-        if sketch_img is None:
-            return None
-        mask = np.array(sketch_img)
-        if mask.shape[2] == 4:
-            return Image.fromarray(mask)
-        alpha = (mask.sum(axis=2) > 0).astype(np.uint8) * 255
-        mask_rgba = np.dstack([mask, alpha])
-        return Image.fromarray(mask_rgba)
+# Dummy function for Gradio: converts drawing to a binary mask
+def create_mask(image):
+    if image is None:
+        return None
+    # Convert to grayscale
+    img = Image.fromarray(image).convert("L")
+    # Binarize (0 or 255)
+    mask = img.point(lambda p: 255 if p > 0 else 0)
+    return np.array(mask)
 
-    # Gradio interface
-    with gr.Blocks() as demo:
-        sketchpad = gr.Sketchpad(label="Draw mask here", shape=image.size[::-1], brush_radius=10)
-        output_img = gr.Image(type="pil", label="Mask Output")
-        sketchpad.change(fn=process_mask, inputs=sketchpad, outputs=output_img)
+# Gradio Interface
+gr_interface = gr.Interface(
+    fn=create_mask,
+    inputs=gr.Image(source="canvas", tool="sketch", type="numpy"),
+    outputs=gr.Image(type="numpy"),
+    live=True,
+    title="Draw Your Mask",
+    description="Draw on the canvas to generate a binary mask."
+)
 
-    # Embed Gradio via HTML iframe
-    launch_result = demo.launch(prevent_thread_lock=True, share=True)
-    gradio_url = launch_result[0]  # <-- This is the actual URL string
-    st.components.v1.iframe(gradio_url, height=image.height + 100, scrolling=True)
+# Launch Gradio in share mode to get a public URL
+launch_result = gr_interface.launch(prevent_thread_lock=True, share=True)
 
-    st.components.v1.iframe(gradio_url, height=image.height + 100, scrolling=True)
+# Extract URL
+gradio_url = launch_result[0] if isinstance(launch_result, tuple) else None
+
+# Embed in Streamlit
+if gradio_url:
+    st.components.v1.iframe(gradio_url, height=500, scrolling=True)
+else:
+    st.error("Gradio URL could not be retrieved. Make sure 'share=True' works.")
