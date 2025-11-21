@@ -1,8 +1,15 @@
+# Streamlit
 streamlit==1.29.0
-streamlit-drawable-canvas==0.9.3
-Pillow==10.0.0
-numpy==1.26.4
-opencv-python-headless==4.10.0.84
+
+# Gradio
+gradio==3.45.1
+
+# Image processing
+Pillow==9.5.0
+numpy==1.24.3
+opencv-python-headless==4.12.0.88
+
+# Optional ML / Diffusers pipeline dependencies if you plan to integrate later
 torch==2.2.2
 torchvision==0.17.2
 diffusers==0.27.2
@@ -10,3 +17,12 @@ transformers>=4.36.0
 accelerate>=0.23.0
 timm>=0.9.0
 scipy>=1.11.1
+
+# Utilities
+rich==13.9.4
+markdown-it-py==4.0.0
+mdurl==0.1.2
+pygments==2.19.2
+validators==0.35.0
+watchdog==6.0.0
+zipp==3.23.0
