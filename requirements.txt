@@ -6,7 +6,7 @@ matplotlib==3.8.3
 pillow==10.3.0
 
 # ML / inference
-torch==2.1.2
+torch==2.6.0
 torchvision==0.16.2
 
 # Explainability
